@@ -1,5 +1,6 @@
 """Stock data service using Yahoo Finance."""
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Optional
 
@@ -16,6 +17,16 @@ from app.services.rate_limiter import RateLimiter
 from app.utils.exceptions import DataFetchError, StockNotFoundError
 
 
+@dataclass
+class SymbolSearchResult:
+    """Result from a symbol search."""
+
+    symbol: str
+    name: str
+    exchange: Optional[str] = None
+    type: Optional[str] = None
+
+
 class StockService:
     """Service for fetching stock data from Yahoo Finance."""
 
@@ -27,6 +38,52 @@ class StockService:
             rate_limiter: Rate limiter for API calls
         """
         self.rate_limiter = rate_limiter
+
+    def search_symbols(self, query: str, limit: int = 10) -> List[SymbolSearchResult]:
+        """
+        Search for stock symbols by company name or partial symbol.
+
+        Args:
+            query: Search query (company name or partial symbol)
+            limit: Maximum number of results to return
+
+        Returns:
+            List of matching symbols with company names
+
+        Raises:
+            DataFetchError: If search fails
+        """
+        self.rate_limiter.acquire_sync()
+
+        try:
+            # Use yfinance search functionality
+            search = yf.Search(query, max_results=limit)
+            quotes = search.quotes if hasattr(search, 'quotes') else []
+
+            results = []
+            for quote in quotes:
+                # Filter to only include stocks (exclude options, futures, etc.)
+                quote_type = quote.get("quoteType", "").upper()
+                if quote_type not in ("EQUITY", "ETF"):
+                    continue
+
+                symbol = quote.get("symbol", "")
+                name = quote.get("shortname") or quote.get("longname") or symbol
+
+                if symbol:
+                    results.append(
+                        SymbolSearchResult(
+                            symbol=symbol,
+                            name=name,
+                            exchange=quote.get("exchange"),
+                            type=quote_type,
+                        )
+                    )
+
+            return results[:limit]
+
+        except Exception as e:
+            raise DataFetchError(f"Failed to search for '{query}': {e}")
 
     def get_stock_analysis(self, symbol: str) -> StockAnalysis:
         """

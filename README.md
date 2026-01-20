@@ -5,6 +5,7 @@ A command-line stock analysis and portfolio management tool powered by Yahoo Fin
 ## Features
 
 - **Real-Time Stock Analysis** - Fetch current prices, fundamentals, technical indicators, and analyst ratings via Yahoo Finance
+- **Fuzzy Symbol Search** - Enter company names like "Apple" or "Nvidia" instead of memorizing ticker symbols
 - **AI-Powered Insights** - Claude generates detailed stock analysis with buy/sell/hold recommendations, SWOT-style breakdowns, and risk assessments
 - **Portfolio Tracking** - Track multiple positions with tax lot details, unrealized gains, holding periods, and sector allocation
 - **News Analysis** - Retrieve company news with AI-powered sentiment analysis and impact assessment
@@ -66,8 +67,12 @@ Available commands:
 Analyze stocks directly from the command line:
 
 ```bash
-# Analyze a stock with default AI model
+# Analyze by ticker symbol
 python main.py AAPL
+
+# Analyze by company name (fuzzy search)
+python main.py "Nvidia"
+python main.py "Tesla Motors"
 
 # Analyze without AI (fundamentals only)
 python main.py MSFT --no-ai
@@ -161,10 +166,13 @@ Portfolio data is stored locally in a SQLite database at `data/portfolio.db`. Th
 
 ## Example Workflow
 
-1. **Add positions to your portfolio:**
+1. **Add positions to your portfolio (using company name):**
    ```
    > add
-   Enter stock symbol: AAPL
+   Enter stock symbol or company name: Apple
+   Searching for 'Apple'...
+   Found: AAPL - Apple Inc.
+   Use this symbol? [Y/n]: y
    Number of shares: 50
    Purchase price per share: 150.00
    Purchase date (YYYY-MM-DD): 2024-06-15
@@ -175,14 +183,29 @@ Portfolio data is stored locally in a SQLite database at `data/portfolio.db`. Th
    > portfolio
    ```
 
-3. **Get AI analysis on a stock:**
+3. **Get AI analysis on a stock (using ticker or name):**
    ```
    > analyze
-   Enter stock symbol: NVDA
+   Enter stock symbol or company name: NVDA
    Include AI analysis? [Y/n]: y
    ```
 
-4. **Analyze your entire portfolio:**
+4. **Search by company name with multiple matches:**
+   ```
+   > analyze
+   Enter stock symbol or company name: Microsoft
+   Searching for 'Microsoft'...
+
+   Search Results
+   # Symbol  Company Name                Exchange
+   1 MSFT    Microsoft Corporation       NMS
+   2 MSF     Microsoft Corporation       GER
+
+   Select number (or 'c' to cancel): 1
+   Selected: MSFT
+   ```
+
+5. **Analyze your entire portfolio:**
    ```
    > analyze-portfolio
    ```

@@ -1,7 +1,7 @@
 """User input handling with Rich prompts."""
 
 from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from rich.prompt import Confirm, Prompt
 from rich.console import Console
@@ -9,6 +9,9 @@ from rich.table import Table
 
 from app.models.portfolio import Position
 from app.utils.validators import validate_stock_symbol
+
+if TYPE_CHECKING:
+    from app.services.stock_service import StockService
 
 
 # Available Claude models with descriptions
@@ -70,18 +73,106 @@ class StockPrompts:
         return model_id
 
     @staticmethod
-    def get_stock_symbol() -> str:
+    def get_stock_symbol(stock_service: Optional["StockService"] = None) -> str:
         """
-        Prompt for stock symbol.
+        Prompt for stock symbol or company name with fuzzy search.
+
+        If a valid ticker format is entered, it's returned directly.
+        Otherwise, searches for matching companies and lets user select.
+
+        Args:
+            stock_service: Optional stock service for fuzzy search capability
 
         Returns:
             Validated uppercase stock symbol
         """
+        console = Console()
+
         while True:
-            symbol = Prompt.ask("[cyan]Enter stock symbol[/cyan]").upper().strip()
-            if validate_stock_symbol(symbol):
-                return symbol
-            print("[red]Invalid symbol format. Use 1-5 letters (e.g., AAPL, MSFT)[/red]")
+            user_input = Prompt.ask(
+                "[cyan]Enter stock symbol or company name[/cyan]"
+            ).strip()
+
+            if not user_input:
+                console.print("[red]Please enter a symbol or company name[/red]")
+                continue
+
+            # Check if it looks like a valid ticker symbol
+            if validate_stock_symbol(user_input):
+                return user_input.upper()
+
+            # If no stock service provided, require valid ticker format
+            if stock_service is None:
+                console.print(
+                    "[red]Invalid symbol format. Use 1-5 letters (e.g., AAPL, MSFT)[/red]"
+                )
+                continue
+
+            # Perform fuzzy search
+            console.print(f"[dim]Searching for '{user_input}'...[/dim]")
+            try:
+                from app.utils.exceptions import DataFetchError
+
+                results = stock_service.search_symbols(user_input, limit=8)
+
+                if not results:
+                    console.print(
+                        f"[yellow]No matches found for '{user_input}'. "
+                        "Try a different name or enter a ticker symbol directly.[/yellow]"
+                    )
+                    continue
+
+                # If exactly one result and name matches closely, use it directly
+                if len(results) == 1:
+                    result = results[0]
+                    console.print(
+                        f"[green]Found: {result.symbol} - {result.name}[/green]"
+                    )
+                    if Confirm.ask("[cyan]Use this symbol?[/cyan]", default=True):
+                        return result.symbol
+                    continue
+
+                # Display results for selection
+                console.print("\n[bold cyan]Search Results[/bold cyan]")
+                table = Table(show_header=True, header_style="bold", box=None)
+                table.add_column("#", style="cyan", width=3)
+                table.add_column("Symbol", style="bold yellow")
+                table.add_column("Company Name")
+                table.add_column("Exchange", style="dim")
+
+                choices = []
+                for i, result in enumerate(results, 1):
+                    table.add_row(
+                        str(i),
+                        result.symbol,
+                        result.name[:50] + "..." if len(result.name) > 50 else result.name,
+                        result.exchange or "",
+                    )
+                    choices.append(str(i))
+
+                console.print(table)
+
+                # Let user select
+                choice = Prompt.ask(
+                    "\n[cyan]Select number (or 'c' to cancel)[/cyan]",
+                    choices=choices + ["c"],
+                    default="1",
+                )
+
+                if choice == "c":
+                    continue
+
+                selected = results[int(choice) - 1]
+                console.print(f"[green]Selected: {selected.symbol}[/green]\n")
+                return selected.symbol
+
+            except DataFetchError as e:
+                console.print(f"[red]Search failed: {e}[/red]")
+                console.print("[dim]Try entering a ticker symbol directly.[/dim]")
+                continue
+            except Exception as e:
+                console.print(f"[red]Unexpected error: {e}[/red]")
+                continue
 
     @staticmethod
     def confirm_ai_analysis() -> bool:

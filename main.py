@@ -22,6 +22,8 @@ Examples:
   python main.py --model sonnet     # Use Claude Sonnet
   python main.py --model opus AAPL  # Analyze Apple with Claude Opus
   python main.py MSFT --no-ai       # Analyze Microsoft without AI insights
+  python main.py "Nvidia"           # Search by company name
+  python main.py "Tesla Motors"     # Fuzzy search for company
 
 Available models:
   opus, opus-4.5    - Claude Opus 4.5 (most capable)
@@ -33,7 +35,7 @@ Available models:
     parser.add_argument(
         "symbol",
         nargs="?",
-        help="Stock symbol to analyze (e.g., AAPL, MSFT). If not provided, starts interactive mode.",
+        help="Stock symbol or company name to analyze (e.g., AAPL, MSFT, 'Apple', 'Nvidia'). If not provided, starts interactive mode.",
     )
     parser.add_argument(
         "--no-ai",
@@ -68,9 +70,9 @@ Available models:
         agent = StockAgent(model=model)
 
         if args.symbol:
-            # Non-interactive mode: analyze single stock
+            # Non-interactive mode: analyze single stock (supports ticker or company name)
             try:
-                agent.analyze_single(args.symbol.upper(), with_ai=not args.no_ai)
+                agent.analyze_single(args.symbol, with_ai=not args.no_ai)
             except StockAgentError as e:
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)

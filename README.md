@@ -7,7 +7,6 @@ A command-line tool for tracking your stock portfolio and getting AI-powered ins
 - **Track your portfolio** - Add positions, see current values, gains/losses, and sector allocation
 - **Analyze any stock** - Look up fundamentals, valuation metrics, and get AI-generated insights
 - **Stay on top of news** - Get news for any stock with AI sentiment analysis for each article
-- **Daily newsletters** - Automatically email yourself a summary of news affecting your holdings
 
 ## Quick Start
 
@@ -49,7 +48,6 @@ Once you're in the interactive mode, here's what you can do:
 | `add` | Add a new position (supports fuzzy search - type "apple" to find AAPL) |
 | `remove` | Remove a position |
 | `analyze-portfolio` | Get AI insights on your overall portfolio |
-| `portfolio-news` | AI analysis of news across all your holdings |
 | `history` | See how your portfolio value has changed over time |
 | `performance` | See which stocks are helping or hurting your returns |
 | `help` | Show available commands |
@@ -68,57 +66,6 @@ portfolio MSFT --no-ai
 
 # Use a specific model
 portfolio NVDA --model opus
-```
-
-## The Newsletter Feature
-
-This is pretty cool - you can set it up to email you a portfolio news digest twice a day. It analyzes news for all your holdings and sends you a nicely formatted email with:
-
-- Overall sentiment (bullish/bearish/neutral)
-- News summary for each stock you own
-- Alerts if something needs attention
-- Key takeaways
-
-### Setting it up
-
-**⚠️ Security Note**: Always use `.env` for credentials, never commit them to git!
-
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` and add your real credentials:
-   ```bash
-   # For Gmail (you'll need an App Password - regular password won't work)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USERNAME=you@gmail.com
-   SMTP_PASSWORD=your_app_password_here
-   NEWSLETTER_SENDER_EMAIL=you@gmail.com
-   NEWSLETTER_RECIPIENTS=you@gmail.com
-
-   # When to send (24-hour format)
-   NEWSLETTER_SCHEDULE_MORNING=08:00
-   NEWSLETTER_SCHEDULE_EVENING=17:30
-   ```
-
-3. Get a Gmail App Password (more secure than your account password):
-   - Enable 2FA on your Google account
-   - Visit https://myaccount.google.com/apppasswords
-   - Generate an app-specific password for this application
-
-### Running it
-
-```bash
-# Test your email config
-portfolio-newsletter --test
-
-# Send one right now
-portfolio-newsletter
-
-# Run as a daemon (sends at scheduled times)
-portfolio-newsletter --daemon
 ```
 
 ## Configuration
@@ -140,16 +87,6 @@ Everything is configured through environment variables stored in a `.env` file.
    # Optional - defaults shown
    CLAUDE_MODEL=claude-sonnet-4-20250514
    PORTFOLIO_DB_PATH=data/portfolio.db
-
-   # For newsletter features (all optional)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USERNAME=your-email@gmail.com
-   SMTP_PASSWORD=your-app-password-here
-   NEWSLETTER_SENDER_EMAIL=your-email@gmail.com
-   NEWSLETTER_RECIPIENTS=recipient@example.com
-   NEWSLETTER_SCHEDULE_MORNING=08:00
-   NEWSLETTER_SCHEDULE_EVENING=17:30
    ```
 
 See `.env.example` for all available configuration options with documentation.
@@ -180,10 +117,9 @@ See `.env.example` for all available configuration options with documentation.
 ```
 app/
 ├── agent/          # Main interactive agent
-├── services/       # Stock data, AI, portfolio, email, newsletter
+├── services/       # Stock data, AI, portfolio
 ├── models/         # Data models (Pydantic)
 ├── ui/             # Display formatting and prompts
-├── newsletter/     # Newsletter CLI and scheduler
 └── utils/          # Helpers and exceptions
 ```
 

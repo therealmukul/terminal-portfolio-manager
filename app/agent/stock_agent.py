@@ -86,8 +86,6 @@ class StockAgent:
                     self._remove_position()
                 elif command == "analyze-portfolio":
                     self._analyze_portfolio()
-                elif command == "portfolio-news":
-                    self._analyze_portfolio_news()
                 elif command == "history":
                     self._view_history()
                 elif command == "performance":
@@ -388,84 +386,6 @@ class StockAgent:
 
         # Display AI insights
         self.display.display_portfolio_analysis(analysis)
-
-    def _analyze_portfolio_news(self):
-        """Analyze news for all stocks in the portfolio."""
-        if self.ai_service is None:
-            self.console.print_warning(
-                "AI news analysis not available. Set ANTHROPIC_API_KEY in .env to enable."
-            )
-            return
-
-        # Load portfolio
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.console.console,
-            transient=True,
-        ) as progress:
-            task = progress.add_task("Loading portfolio...", total=None)
-            portfolio = self.portfolio_service.get_portfolio(include_prices=True)
-            progress.update(task, description="[green]Portfolio loaded[/green]")
-
-        if portfolio.num_positions == 0:
-            self.console.print_info(
-                "Your portfolio is empty. Add positions first with 'add'."
-            )
-            return
-
-        # Get unique symbols from portfolio
-        symbols = list({agg.symbol for agg in portfolio.aggregated})
-
-        # Fetch news for each symbol
-        news_by_symbol = {}
-        sector_by_symbol = {}
-        weight_by_symbol = {}
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.console.console,
-            transient=True,
-        ) as progress:
-            task = progress.add_task(f"Fetching news for {len(symbols)} holdings...", total=None)
-
-            for agg in portfolio.aggregated:
-                try:
-                    articles = self.stock_service.get_news(agg.symbol, limit=10)
-                    if articles:
-                        news_by_symbol[agg.symbol] = articles
-                        sector_by_symbol[agg.symbol] = agg.sector or "Unknown"
-                        weight_by_symbol[agg.symbol] = agg.weight_pct or 0
-                except DataFetchError:
-                    # Skip symbols where news fetch fails
-                    pass
-
-            progress.update(task, description=f"[green]Fetched news for {len(news_by_symbol)} holdings[/green]")
-
-        if not news_by_symbol:
-            self.console.print_info("No news found for any portfolio holdings.")
-            return
-
-        # Analyze with AI
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.console.console,
-            transient=True,
-        ) as progress:
-            task = progress.add_task("Analyzing portfolio news with AI...", total=None)
-
-            try:
-                analysis = self.ai_service.analyze_portfolio_news(
-                    news_by_symbol, sector_by_symbol, weight_by_symbol
-                )
-                progress.update(task, description="[green]Analysis complete[/green]")
-            except AIServiceError as e:
-                self.console.print_error(f"AI analysis failed: {e}")
-                return
-
-        self.display.display_portfolio_news_analysis(analysis)
 
     def _view_history(self):
         """Display portfolio value history."""

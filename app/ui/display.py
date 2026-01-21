@@ -11,7 +11,6 @@ from app.models.ai_response import (
     ArticleSentiment,
     NewsAnalysis,
     NewsSentiment,
-    PortfolioNewsAnalysis,
     RecommendationType,
 )
 from app.models.portfolio import (
@@ -704,124 +703,6 @@ class StockDisplay:
             ))
 
         # Disclaimer
-        self.console.print(f"\n[dim italic]{analysis.disclaimer}[/dim italic]")
-
-    def display_portfolio_news_analysis(self, analysis: PortfolioNewsAnalysis):
-        """Display AI-generated portfolio-wide news analysis."""
-        sentiment_colors = {
-            NewsSentiment.VERY_BULLISH: "bold green",
-            NewsSentiment.BULLISH: "green",
-            NewsSentiment.NEUTRAL: "yellow",
-            NewsSentiment.BEARISH: "red",
-            NewsSentiment.VERY_BEARISH: "bold red",
-        }
-        sentiment_icons = {
-            NewsSentiment.VERY_BULLISH: "▲▲",
-            NewsSentiment.BULLISH: "▲",
-            NewsSentiment.NEUTRAL: "●",
-            NewsSentiment.BEARISH: "▼",
-            NewsSentiment.VERY_BEARISH: "▼▼",
-        }
-
-        # Header
-        s_color = sentiment_colors.get(analysis.portfolio_sentiment, "white")
-        s_icon = sentiment_icons.get(analysis.portfolio_sentiment, "●")
-        s_text = analysis.portfolio_sentiment.value.replace("_", " ").upper()
-
-        header = (
-            f"[bold]Portfolio News Analysis[/bold]\n"
-            f"[dim]{analysis.stocks_analyzed} holdings • {analysis.total_articles_analyzed} articles • {analysis.date_range}[/dim]\n\n"
-            f"[{s_color}]{s_icon} Portfolio Sentiment: {s_text}[/{s_color}]\n"
-            f"[dim]{analysis.sentiment_breakdown} | Confidence: {analysis.confidence_level}[/dim]"
-        )
-        self.console.print(Panel(header, title="AI Portfolio News Analysis", border_style="cyan"))
-
-        # Summary
-        self.console.print(Panel(analysis.summary, title="Executive Summary", border_style="blue"))
-
-        # Stock sentiment with source articles
-        if analysis.stock_summaries:
-            self.console.print_subheader("Holdings News & Sources")
-
-            for s in analysis.stock_summaries:
-                color = sentiment_colors.get(s.sentiment, "white").replace("bold ", "")
-                icon = sentiment_icons.get(s.sentiment, "●")
-                sentiment_label = s.sentiment.value.replace("_", " ").title()
-
-                # Build content with headline summary and sources
-                content = f"[{color}]{icon}[/{color}] [bold]{sentiment_label}[/bold] ({s.article_count} articles)\n\n"
-                content += f"{s.headline_summary}\n"
-
-                if s.sentiment_driver:
-                    content += f"\n[dim]Driver: {s.sentiment_driver}[/dim]\n"
-
-                # Add source articles
-                if s.source_articles:
-                    content += "\n[bold cyan]Sources:[/bold cyan]\n"
-                    for article in s.source_articles:
-                        # Truncate long titles
-                        title = article.title[:60] + "..." if len(article.title) > 60 else article.title
-                        content += f"  [dim]•[/dim] {title}\n"
-                        content += f"    [dim]{article.publisher} • {article.time_ago}[/dim]\n"
-                        content += f"    [link={article.url}][blue underline]{article.url}[/blue underline][/link]\n"
-
-                self.console.print(Panel(
-                    content.strip(),
-                    title=f"[bold]{s.symbol}[/bold]",
-                    border_style=color,
-                    padding=(1, 2),
-                ))
-
-        # Sector trends
-        if analysis.sector_trends:
-            self.console.print_subheader("Sector Trends")
-            for trend in analysis.sector_trends:
-                color = sentiment_colors.get(trend.sentiment, "white").replace("bold ", "")
-                icon = sentiment_icons.get(trend.sentiment, "●")
-                holdings = ", ".join(trend.affected_holdings) if trend.affected_holdings else "N/A"
-                content = f"[{color}]{icon}[/{color}] {trend.key_development}\n[dim]Holdings: {holdings}[/dim]"
-                self.console.print(Panel(content, title=trend.sector, border_style=color))
-
-        # Correlated risks
-        if analysis.correlated_risks:
-            risks = "\n".join(f"[red]![/red] {r}" for r in analysis.correlated_risks)
-            self.console.print(Panel(risks, title="Correlated Risks", border_style="red"))
-
-        # Cross-portfolio themes
-        if analysis.cross_portfolio_themes:
-            themes = "\n".join(f"[cyan]•[/cyan] {t}" for t in analysis.cross_portfolio_themes)
-            self.console.print(Panel(themes, title="Cross-Portfolio Themes", border_style="cyan"))
-
-        # Alerts
-        if analysis.alerts:
-            self.console.print_subheader("Alerts")
-            urgency_colors = {"immediate": "red", "this_week": "yellow", "monitor": "blue"}
-            alert_icons = {"risk": "⚠", "opportunity": "★", "information": "ℹ"}
-
-            for alert in analysis.alerts:
-                color = urgency_colors.get(alert.urgency, "white")
-                icon = alert_icons.get(alert.alert_type, "•")
-                content = alert.description
-                if alert.affected_symbols:
-                    content += f"\n[dim]Affected: {', '.join(alert.affected_symbols)}[/dim]"
-                if alert.recommended_action:
-                    content += f"\n[bold]Action:[/bold] {alert.recommended_action}"
-                label = alert.urgency.replace("_", " ").upper()
-                self.console.print(Panel(content, title=f"{icon} [{label}] {alert.title}", border_style=color))
-
-        # Opportunities
-        if analysis.opportunities:
-            opps = "\n".join(f"[green]★[/green] {o}" for o in analysis.opportunities)
-            self.console.print(Panel(opps, title="Opportunities", border_style="green"))
-
-        # Portfolio health & takeaways
-        if analysis.portfolio_news_health:
-            self.console.print(Panel(analysis.portfolio_news_health, title="Portfolio News Health", border_style="cyan"))
-
-        if analysis.key_takeaways:
-            takeaways = "\n".join(f"[green]•[/green] {t}" for t in analysis.key_takeaways)
-            self.console.print(Panel(takeaways, title="Key Takeaways", border_style="green"))
-
         self.console.print(f"\n[dim italic]{analysis.disclaimer}[/dim italic]")
 
     # ============ History & Performance Display Methods ============

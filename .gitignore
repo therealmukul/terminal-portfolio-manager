@@ -1,8 +1,18 @@
-# Environment
+# Environment and Secrets
 .env
+.env.local
+.env.*.local
+.env.save
+*.env
 .venv/
 venv/
 env/
+
+# Security - Never commit these
+**/secrets/
+**/*secret*
+**/*credential*
+**/password.txt
 
 # Python
 __pycache__/

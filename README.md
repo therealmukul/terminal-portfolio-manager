@@ -24,6 +24,18 @@ portfolio
 
 You'll be prompted to pick a Claude model, then dropped into an interactive shell where you can run commands.
 
+## Security Best Practices
+
+**IMPORTANT**: Never commit sensitive credentials to version control!
+
+1. **Use `.env` for secrets** - Copy `.env.example` to `.env` and add your real credentials there
+2. **Never commit `.env`** - It's already in `.gitignore`, but double-check before pushing
+3. **Use App Passwords** - For Gmail, create an App Password instead of using your account password
+4. **Rotate compromised credentials** - If you accidentally commit credentials, immediately:
+   - Revoke/rotate the exposed credentials
+   - Remove them from git history (see [GitHub's guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository))
+   - Force push the cleaned history
+
 ## Commands
 
 Once you're in the interactive mode, here's what you can do:
@@ -69,23 +81,32 @@ This is pretty cool - you can set it up to email you a portfolio news digest twi
 
 ### Setting it up
 
-Add these to your `.env` file:
+**⚠️ Security Note**: Always use `.env` for credentials, never commit them to git!
 
-```bash
-# For Gmail (you'll need an App Password - regular password won't work)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=you@gmail.com
-SMTP_PASSWORD=your_app_password
-NEWSLETTER_SENDER_EMAIL=you@gmail.com
-NEWSLETTER_RECIPIENTS=you@gmail.com
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
 
-# When to send (24-hour format)
-NEWSLETTER_SCHEDULE_MORNING=08:00
-NEWSLETTER_SCHEDULE_EVENING=17:30
-```
+2. Edit `.env` and add your real credentials:
+   ```bash
+   # For Gmail (you'll need an App Password - regular password won't work)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=you@gmail.com
+   SMTP_PASSWORD=your_app_password_here
+   NEWSLETTER_SENDER_EMAIL=you@gmail.com
+   NEWSLETTER_RECIPIENTS=you@gmail.com
 
-To get a Gmail App Password: enable 2FA on your Google account, then go to https://myaccount.google.com/apppasswords
+   # When to send (24-hour format)
+   NEWSLETTER_SCHEDULE_MORNING=08:00
+   NEWSLETTER_SCHEDULE_EVENING=17:30
+   ```
+
+3. Get a Gmail App Password (more secure than your account password):
+   - Enable 2FA on your Google account
+   - Visit https://myaccount.google.com/apppasswords
+   - Generate an app-specific password for this application
 
 ### Running it
 
@@ -102,26 +123,36 @@ portfolio-newsletter --daemon
 
 ## Configuration
 
-Everything is configured through environment variables. Create a `.env` file in the project root:
+Everything is configured through environment variables stored in a `.env` file.
 
-```bash
-# Required for AI features
-ANTHROPIC_API_KEY=sk-ant-...
+**Setup steps:**
 
-# Optional - defaults shown
-CLAUDE_MODEL=claude-sonnet-4-20250514
-PORTFOLIO_DB_PATH=data/portfolio.db
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
 
-# For newsletter (all optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=
-SMTP_PASSWORD=
-NEWSLETTER_SENDER_EMAIL=
-NEWSLETTER_RECIPIENTS=
-NEWSLETTER_SCHEDULE_MORNING=08:00
-NEWSLETTER_SCHEDULE_EVENING=17:30
-```
+2. Edit `.env` with your actual values (never commit this file!):
+   ```bash
+   # Required for AI features
+   ANTHROPIC_API_KEY=sk-ant-your-actual-key-here
+
+   # Optional - defaults shown
+   CLAUDE_MODEL=claude-sonnet-4-20250514
+   PORTFOLIO_DB_PATH=data/portfolio.db
+
+   # For newsletter features (all optional)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your-email@gmail.com
+   SMTP_PASSWORD=your-app-password-here
+   NEWSLETTER_SENDER_EMAIL=your-email@gmail.com
+   NEWSLETTER_RECIPIENTS=recipient@example.com
+   NEWSLETTER_SCHEDULE_MORNING=08:00
+   NEWSLETTER_SCHEDULE_EVENING=17:30
+   ```
+
+See `.env.example` for all available configuration options with documentation.
 
 ## How it works
 

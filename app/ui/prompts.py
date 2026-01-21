@@ -190,18 +190,66 @@ class StockPrompts:
         )
 
     @staticmethod
-    def get_command() -> str:
+    def confirm_reuse_symbol(symbol: str) -> bool:
         """
-        Get user command.
+        Confirm if user wants to reuse the last symbol.
+
+        Args:
+            symbol: Last symbol that was analyzed
 
         Returns:
-            User command string
+            True if user wants to reuse the symbol
         """
-        return Prompt.ask(
+        return Confirm.ask(
+            f"[cyan]Analyze {symbol} again?[/cyan]", default=True
+        )
+
+    @staticmethod
+    def get_command() -> str:
+        """
+        Get user command with support for aliases.
+
+        Returns:
+            Normalized user command string
+        """
+        # Command aliases for shorter typing
+        command_aliases = {
+            # Main command aliases
+            "analysis": "news-analysis",
+            "analyze": "analyze-portfolio",
+            "ap": "analyze-portfolio",
+            "pn": "portfolio-news",
+            "pnews": "portfolio-news",
+            "buy": "add",
+            "sell": "remove",
+            # Exit aliases
+            "exit": "quit",
+            "q": "quit",
+            # Shortened versions
+            "perf": "performance",
+        }
+
+        # All valid commands (includes both main commands and aliases)
+        valid_choices = [
+            # Stock commands
+            "stock", "news", "news-analysis", "analysis",
+            # Portfolio commands
+            "portfolio", "add", "remove", "buy", "sell",
+            "analyze-portfolio", "analyze", "ap",
+            "portfolio-news", "pn", "pnews",
+            "history", "performance", "perf",
+            # Utility
+            "help", "quit", "exit", "q"
+        ]
+
+        command = Prompt.ask(
             "\n[bold cyan]Command[/bold cyan]",
-            choices=["stock", "news", "news-analysis", "portfolio", "add", "remove", "analyze-portfolio", "portfolio-news", "history", "performance", "help", "quit"],
+            choices=valid_choices,
             default="portfolio",
         )
+
+        # Normalize aliases to their main command
+        return command_aliases.get(command, command)
 
     @staticmethod
     def press_enter_to_continue():

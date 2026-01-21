@@ -51,8 +51,9 @@ class StockDisplay:
         welcome_text = (
             "[bold cyan]Stock Analysis Agent[/bold cyan]\n"
             "Powered by Yahoo Finance & Claude AI\n\n"
-            "[dim]Commands: stock, news, news-analysis, portfolio, add, remove,\n"
-            "analyze-portfolio, portfolio-news, history, performance, help, quit[/dim]"
+            "[dim]Commands: stock, news, analysis, portfolio, buy, sell,\n"
+            "analyze, history, performance, help, quit\n"
+            "Type 'help' for full command list with aliases[/dim]"
         )
         panel = Panel(welcome_text, title="Welcome", border_style="cyan", padding=(1, 2))
         self.console.print(panel)
@@ -61,22 +62,34 @@ class StockDisplay:
         """Display help information."""
         help_text = """
 [bold cyan]Stock Commands:[/bold cyan]
-  [bold]stock[/bold]             - Analyze a stock's fundamentals with optional AI insights
-  [bold]news[/bold]              - Get latest news with AI sentiment analysis per article
-  [bold]news-analysis[/bold]     - Deep AI analysis of news themes, impact, and takeaways
+  [bold]stock[/bold]                        - Analyze a stock's fundamentals with optional AI insights
+  [bold]news[/bold]                         - Get latest news with AI sentiment analysis per article
+  [bold]analysis[/bold]                     - Deep AI analysis of news themes, impact, and takeaways
+                                 [dim](alias: news-analysis)[/dim]
 
 [bold cyan]Portfolio Commands:[/bold cyan]
-  [bold]portfolio[/bold]         - View your portfolio with live prices
-  [bold]add[/bold]               - Add a new position to your portfolio
-  [bold]remove[/bold]            - Remove a position from your portfolio
-  [bold]analyze-portfolio[/bold] - Get AI-powered portfolio insights
-  [bold]portfolio-news[/bold]    - AI analysis of news across all holdings
-  [bold]history[/bold]           - View portfolio value history over time
-  [bold]performance[/bold]       - See which holdings contributed most to gains/losses
+  [bold]portfolio[/bold]                    - View your portfolio with live prices
+  [bold]buy[/bold]                          - Add a new position to your portfolio
+                                 [dim](aliases: add)[/dim]
+  [bold]sell[/bold]                         - Remove a position from your portfolio
+                                 [dim](aliases: remove)[/dim]
+  [bold]analyze[/bold]                      - Get AI-powered portfolio insights
+                                 [dim](aliases: analyze-portfolio, ap)[/dim]
+  [bold]portfolio-news[/bold]               - AI analysis of news across all holdings
+                                 [dim](aliases: pnews, pn)[/dim]
+  [bold]history[/bold]                      - View portfolio value history over time
+  [bold]performance[/bold]                  - See which holdings contributed most to gains/losses
+                                 [dim](alias: perf)[/dim]
 
 [bold cyan]Other:[/bold cyan]
-  [bold]help[/bold]              - Show this help message
-  [bold]quit[/bold]              - Exit the application
+  [bold]help[/bold]                         - Show this help message
+  [bold]quit[/bold]                         - Exit the application
+                                 [dim](aliases: exit, q)[/dim]
+
+[bold cyan]Pro Tips:[/bold cyan]
+  • After analyzing a stock, you'll be asked if you want to analyze it again
+  • Use shorter aliases like 'ap' for analyze-portfolio to save time
+  • Buy/sell are clearer than add/remove for portfolio management
 
 [bold cyan]Example Symbols:[/bold cyan]
   AAPL (Apple), MSFT (Microsoft), GOOGL (Alphabet)

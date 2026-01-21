@@ -31,7 +31,6 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
-    "apscheduler>=3.10.0",
 ]
 
 [project.optional-dependencies]
@@ -46,7 +45,6 @@ dev = [
 [project.scripts]
 portfolio = "app.cli:main"
 stock-agent = "app.cli:main"
-portfolio-newsletter = "app.newsletter:main"
 
 [project.urls]
 Homepage = "https://github.com/mukul/terminal-portfolio-manager"

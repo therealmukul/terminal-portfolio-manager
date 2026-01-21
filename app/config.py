@@ -1,6 +1,6 @@
 """Application configuration using Pydantic settings."""
 
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -36,46 +36,11 @@ class Settings(BaseSettings):
         description="Path to SQLite database for portfolio storage",
     )
 
-    # Email/Newsletter Configuration
-    smtp_host: str = Field(
-        default="smtp.gmail.com", description="SMTP server host"
-    )
-    smtp_port: int = Field(
-        default=587, description="SMTP server port"
-    )
-    smtp_username: Optional[str] = Field(
-        default=None, description="SMTP username (email address)"
-    )
-    smtp_password: Optional[str] = Field(
-        default=None, description="SMTP password or app password"
-    )
-    newsletter_sender_email: Optional[str] = Field(
-        default=None, description="Sender email address for newsletter"
-    )
-    newsletter_sender_name: str = Field(
-        default="Portfolio Manager", description="Sender name for newsletter"
-    )
-    newsletter_recipients: Optional[str] = Field(
-        default=None, description="Comma-separated list of recipient email addresses"
-    )
-    newsletter_schedule_morning: str = Field(
-        default="08:00", description="Morning newsletter time (HH:MM)"
-    )
-    newsletter_schedule_evening: str = Field(
-        default="17:30", description="Evening newsletter time (HH:MM)"
-    )
-
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
     }
-
-    def get_newsletter_recipients(self) -> List[str]:
-        """Parse newsletter recipients from comma-separated string."""
-        if not self.newsletter_recipients:
-            return []
-        return [email.strip() for email in self.newsletter_recipients.split(",") if email.strip()]
 
 
 def get_settings() -> Settings:

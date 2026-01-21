@@ -41,6 +41,9 @@ class StockAgent:
         self.display = StockDisplay(self.console)
         self.prompts = StockPrompts()
 
+        # Track last analyzed symbol for quick re-use
+        self.last_symbol: Optional[str] = None
+
         # Initialize rate limiters
         self.yfinance_limiter = RateLimiter(self.settings.yfinance_requests_per_minute)
         self.claude_limiter = RateLimiter(self.settings.claude_requests_per_minute)
@@ -102,9 +105,21 @@ class StockAgent:
 
     def _analyze_stock(self):
         """Analyze a single stock."""
-        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
-        if not symbol:
-            return
+        # Offer to reuse last symbol if available
+        if self.last_symbol:
+            if self.prompts.confirm_reuse_symbol(self.last_symbol):
+                symbol = self.last_symbol
+            else:
+                symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+                if not symbol:
+                    return
+        else:
+            symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+            if not symbol:
+                return
+
+        # Save as last symbol for future commands
+        self.last_symbol = symbol
 
         # Fetch stock data with progress spinner
         with Progress(
@@ -157,9 +172,21 @@ class StockAgent:
 
     def _get_news(self):
         """Get news for a stock with AI sentiment analysis."""
-        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
-        if not symbol:
-            return
+        # Offer to reuse last symbol if available
+        if self.last_symbol:
+            if self.prompts.confirm_reuse_symbol(self.last_symbol):
+                symbol = self.last_symbol
+            else:
+                symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+                if not symbol:
+                    return
+        else:
+            symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+            if not symbol:
+                return
+
+        # Save as last symbol for future commands
+        self.last_symbol = symbol
 
         with Progress(
             SpinnerColumn(),
@@ -207,9 +234,21 @@ class StockAgent:
             )
             return
 
-        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
-        if not symbol:
-            return
+        # Offer to reuse last symbol if available
+        if self.last_symbol:
+            if self.prompts.confirm_reuse_symbol(self.last_symbol):
+                symbol = self.last_symbol
+            else:
+                symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+                if not symbol:
+                    return
+        else:
+            symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+            if not symbol:
+                return
+
+        # Save as last symbol for future commands
+        self.last_symbol = symbol
 
         # Fetch news
         with Progress(

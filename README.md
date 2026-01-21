@@ -39,19 +39,29 @@ You'll be prompted to pick a Claude model, then dropped into an interactive shel
 
 Once you're in the interactive mode, here's what you can do:
 
-| Command | What it does |
-|---------|--------------|
-| `stock` | Look up any stock - shows fundamentals and optional AI analysis |
-| `news` | Get recent news for a stock with sentiment analysis |
-| `news-analysis` | Deep dive into news themes and their potential impact |
-| `portfolio` | See your current holdings with live prices |
-| `add` | Add a new position (supports fuzzy search - type "apple" to find AAPL) |
-| `remove` | Remove a position |
-| `analyze-portfolio` | Get AI insights on your overall portfolio |
-| `history` | See how your portfolio value has changed over time |
-| `performance` | See which stocks are helping or hurting your returns |
-| `help` | Show available commands |
-| `quit` | Exit |
+| Command | Aliases | What it does |
+|---------|---------|--------------|
+| **Stock Analysis** |||
+| `stock` | - | Look up any stock - shows fundamentals and optional AI analysis |
+| `news` | - | Get recent news for a stock with sentiment analysis |
+| `analysis` | `news-analysis` | Deep dive into news themes and their potential impact |
+| **Portfolio Management** |||
+| `portfolio` | - | See your current holdings with live prices |
+| `buy` | `add` | Add a new position (supports fuzzy search - type "apple" to find AAPL) |
+| `sell` | `remove` | Remove a position |
+| `analyze` | `analyze-portfolio`, `ap` | Get AI insights on your overall portfolio |
+| `portfolio-news` | `pnews`, `pn` | AI analysis of news across all your holdings |
+| `history` | - | See how your portfolio value has changed over time |
+| `performance` | `perf` | See which stocks are helping or hurting your returns |
+| **Utility** |||
+| `help` | - | Show available commands |
+| `quit` | `exit`, `q` | Exit the application |
+
+### Pro Tips
+
+- **Shorter aliases**: Use `ap` instead of `analyze-portfolio`, `pn` instead of `portfolio-news` to save typing
+- **Context retention**: After analyzing a stock, you'll be asked if you want to analyze it again - no need to re-enter the symbol
+- **Clearer names**: Use `buy`/`sell` instead of `add`/`remove` for portfolio operations (both work, but buy/sell are more intuitive)
 
 ## One-off Analysis
 

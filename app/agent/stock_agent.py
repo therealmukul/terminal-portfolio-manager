@@ -104,7 +104,7 @@ class StockAgent:
 
     def _analyze_stock(self):
         """Analyze a single stock."""
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol(self.stock_service)
 
         # Fetch stock data with progress spinner
         with Progress(
@@ -157,7 +157,7 @@ class StockAgent:
 
     def _get_news(self):
         """Get news for a stock."""
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol(self.stock_service)
 
         with Progress(
             SpinnerColumn(),
@@ -184,7 +184,7 @@ class StockAgent:
             )
             return
 
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol(self.stock_service)
 
         # Fetch news
         with Progress(
@@ -252,7 +252,7 @@ class StockAgent:
     def _add_position(self):
         """Add a new position to the portfolio."""
         # Get position details via prompts
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol(self.stock_service)
 
         # Validate symbol exists
         with Progress(
@@ -482,14 +482,66 @@ class StockAgent:
 
         self.display.display_performance(performance)
 
-    def analyze_single(self, symbol: str, with_ai: bool = True) -> None:
+    def resolve_symbol(self, query: str) -> Optional[str]:
+        """
+        Resolve a stock symbol from a query (ticker or company name).
+
+        Args:
+            query: Stock ticker symbol or company name
+
+        Returns:
+            Resolved stock symbol, or None if not found
+        """
+        from app.utils.validators import validate_stock_symbol
+
+        # If it's already a valid ticker format, return as-is
+        if validate_stock_symbol(query):
+            return query.upper()
+
+        # Search for the symbol
+        self.console.print(f"[dim]Searching for '{query}'...[/dim]")
+        try:
+            results = self.stock_service.search_symbols(query, limit=5)
+
+            if not results:
+                self.console.print_error(f"No matches found for '{query}'")
+                return None
+
+            if len(results) == 1:
+                result = results[0]
+                self.console.print(
+                    f"[green]Found: {result.symbol} - {result.name}[/green]"
+                )
+                return result.symbol
+
+            # Multiple results - show options and use the first one
+            self.console.print("\n[bold cyan]Multiple matches found:[/bold cyan]")
+            for i, result in enumerate(results, 1):
+                self.console.print(f"  {i}. [yellow]{result.symbol}[/yellow] - {result.name}")
+
+            self.console.print(f"\n[green]Using: {results[0].symbol}[/green]")
+            self.console.print(
+                "[dim]Tip: Use the exact ticker symbol for precise matching.[/dim]\n"
+            )
+            return results[0].symbol
+
+        except DataFetchError as e:
+            self.console.print_error(f"Search failed: {e}")
+            return None
+
+    def analyze_single(self, query: str, with_ai: bool = True) -> None:
         """
         Analyze a single stock non-interactively.
 
         Args:
-            symbol: Stock ticker symbol
+            query: Stock ticker symbol or company name
             with_ai: Whether to include AI analysis
         """
+        # Resolve the symbol (handles both tickers and company names)
+        symbol = self.resolve_symbol(query)
+        if symbol is None:
+            raise StockNotFoundError(f"Could not resolve '{query}' to a stock symbol")
+
         # Fetch stock data with progress spinner
         with Progress(
             SpinnerColumn(),

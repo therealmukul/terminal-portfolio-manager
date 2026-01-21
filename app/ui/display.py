@@ -1,6 +1,6 @@
 """Display formatters for stock analysis using Rich."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from rich.columns import Columns
 from rich.panel import Panel
@@ -8,6 +8,7 @@ from rich.table import Table
 
 from app.models.ai_response import (
     AIInsight,
+    ArticleSentiment,
     NewsAnalysis,
     NewsSentiment,
     PortfolioNewsAnalysis,
@@ -50,7 +51,7 @@ class StockDisplay:
         welcome_text = (
             "[bold cyan]Stock Analysis Agent[/bold cyan]\n"
             "Powered by Yahoo Finance & Claude AI\n\n"
-            "[dim]Commands: analyze, news, news-analysis, portfolio, add, remove,\n"
+            "[dim]Commands: stock, news, news-analysis, portfolio, add, remove,\n"
             "analyze-portfolio, portfolio-news, history, performance, help, quit[/dim]"
         )
         panel = Panel(welcome_text, title="Welcome", border_style="cyan", padding=(1, 2))
@@ -60,9 +61,9 @@ class StockDisplay:
         """Display help information."""
         help_text = """
 [bold cyan]Stock Commands:[/bold cyan]
-  [bold]analyze[/bold]           - Analyze a stock's fundamentals with optional AI insights
-  [bold]news[/bold]              - Get latest news for a stock
-  [bold]news-analysis[/bold]     - AI-powered news sentiment and impact analysis
+  [bold]stock[/bold]             - Analyze a stock's fundamentals with optional AI insights
+  [bold]news[/bold]              - Get latest news with AI sentiment analysis per article
+  [bold]news-analysis[/bold]     - Deep AI analysis of news themes, impact, and takeaways
 
 [bold cyan]Portfolio Commands:[/bold cyan]
   [bold]portfolio[/bold]         - View your portfolio with live prices
@@ -525,32 +526,74 @@ class StockDisplay:
 
     # ============ News Display Methods ============
 
-    def display_news(self, symbol: str, articles: List[NewsArticle]):
-        """Display news articles for a stock."""
+    def display_news(
+        self,
+        symbol: str,
+        articles: List[NewsArticle],
+        sentiments: Optional[Dict[int, ArticleSentiment]] = None,
+    ):
+        """Display news articles for a stock with optional AI sentiment."""
         if not articles:
             self.console.print_info(f"No news articles found for {symbol}")
             return
 
-        self.console.print(Panel(
-            f"[bold]Latest News for {symbol}[/bold]",
-            border_style="cyan",
-        ))
+        # Sentiment styling
+        sentiment_colors = {
+            NewsSentiment.VERY_BULLISH: "bold green",
+            NewsSentiment.BULLISH: "green",
+            NewsSentiment.NEUTRAL: "yellow",
+            NewsSentiment.BEARISH: "red",
+            NewsSentiment.VERY_BEARISH: "bold red",
+        }
+        sentiment_icons = {
+            NewsSentiment.VERY_BULLISH: "▲▲",
+            NewsSentiment.BULLISH: "▲",
+            NewsSentiment.NEUTRAL: "●",
+            NewsSentiment.BEARISH: "▼",
+            NewsSentiment.VERY_BEARISH: "▼▼",
+        }
 
-        for i, article in enumerate(articles, 1):
+        # Header
+        header_text = f"[bold]Latest News for {symbol}[/bold]"
+        if sentiments:
+            header_text += "\n[dim]AI sentiment analysis enabled[/dim]"
+        self.console.print(Panel(header_text, border_style="cyan"))
+
+        for i, article in enumerate(articles):
+            # Get sentiment for this article
+            sentiment_info = sentiments.get(i) if sentiments else None
+
             # Build article content
             content = f"[bold]{article.title}[/bold]\n"
+
+            # Add sentiment badge if available
+            if sentiment_info:
+                s_color = sentiment_colors.get(sentiment_info.sentiment, "white")
+                s_icon = sentiment_icons.get(sentiment_info.sentiment, "●")
+                s_label = sentiment_info.sentiment.value.replace("_", " ").upper()
+                content += f"[{s_color}]{s_icon} {s_label}[/{s_color}]"
+                if sentiment_info.summary:
+                    content += f" [dim]— {sentiment_info.summary}[/dim]"
+                content += "\n"
+
             if article.summary:
                 # Truncate summary if too long
                 summary = article.summary[:200] + "..." if len(article.summary) > 200 else article.summary
-                content += f"{summary}\n"
+                content += f"\n{summary}\n"
+
             content += f"\n[dim]{article.publisher} • {article.time_ago}[/dim]"
             if article.url:
                 content += f"\n[link={article.url}][blue]{article.url}[/blue][/link]"
 
+            # Color the panel border based on sentiment
+            border_color = "blue"
+            if sentiment_info:
+                border_color = sentiment_colors.get(sentiment_info.sentiment, "blue").replace("bold ", "")
+
             self.console.print(Panel(
                 content,
-                title=f"[{i}]",
-                border_style="blue",
+                title=f"[{i + 1}]",
+                border_style=border_color,
                 padding=(0, 1),
             ))
 

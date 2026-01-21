@@ -107,6 +107,15 @@ class StockAnalysis(BaseModel):
     fetched_at: datetime = Field(default_factory=datetime.now)
 
 
+class StockSearchResult(BaseModel):
+    """A stock search result."""
+
+    symbol: str
+    name: str
+    exchange: Optional[str] = None
+    type: Optional[str] = None  # EQUITY, ETF, etc.
+
+
 class NewsArticle(BaseModel):
     """A news article related to a stock."""
 

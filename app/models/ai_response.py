@@ -56,6 +56,14 @@ class NewsSentiment(str, Enum):
     VERY_BEARISH = "very_bearish"
 
 
+class ArticleSentiment(BaseModel):
+    """AI-generated sentiment for a single news article."""
+
+    sentiment: NewsSentiment = Field(description="Sentiment of the article")
+    confidence: str = Field(default="medium", description="Confidence level (low/medium/high)")
+    summary: str = Field(default="", description="One-line summary of the article's impact")
+
+
 class NewsTheme(BaseModel):
     """A key theme identified in the news."""
 

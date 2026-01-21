@@ -5,12 +5,15 @@ from typing import Any, List, Optional
 
 import yfinance as yf
 
+import requests
+
 from app.models.stock import (
     EarningsData,
     FundamentalData,
     NewsArticle,
     StockAnalysis,
     StockInfo,
+    StockSearchResult,
 )
 from app.services.rate_limiter import RateLimiter
 from app.utils.exceptions import DataFetchError, StockNotFoundError
@@ -27,6 +30,67 @@ class StockService:
             rate_limiter: Rate limiter for API calls
         """
         self.rate_limiter = rate_limiter
+
+    def search_stocks(self, query: str, limit: int = 8) -> List[StockSearchResult]:
+        """
+        Search for stocks by ticker symbol or company name.
+
+        Args:
+            query: Search query (ticker or company name)
+            limit: Maximum number of results to return
+
+        Returns:
+            List of StockSearchResult objects
+
+        Raises:
+            DataFetchError: If search fails
+        """
+        self.rate_limiter.acquire_sync()
+
+        try:
+            # Use Yahoo Finance search API
+            url = "https://query2.finance.yahoo.com/v1/finance/search"
+            params = {
+                "q": query,
+                "quotesCount": limit,
+                "newsCount": 0,
+                "listsCount": 0,
+                "enableFuzzyQuery": True,
+                "quotesQueryId": "tss_match_phrase_query",
+            }
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            results = []
+            for quote in data.get("quotes", []):
+                # Filter to stocks and ETFs only
+                quote_type = quote.get("quoteType", "")
+                if quote_type not in ("EQUITY", "ETF"):
+                    continue
+
+                symbol = quote.get("symbol", "")
+                name = quote.get("shortname") or quote.get("longname") or symbol
+
+                results.append(
+                    StockSearchResult(
+                        symbol=symbol,
+                        name=name,
+                        exchange=quote.get("exchange"),
+                        type=quote_type,
+                    )
+                )
+
+            return results[:limit]
+
+        except requests.RequestException as e:
+            raise DataFetchError(f"Stock search failed: {e}")
+        except Exception as e:
+            raise DataFetchError(f"Stock search failed: {e}")
 
     def get_stock_analysis(self, symbol: str) -> StockAnalysis:
         """
@@ -258,6 +322,8 @@ class StockService:
                     # Skip malformed articles
                     continue
 
+            # Sort by published date descending (most recent first)
+            articles.sort(key=lambda a: a.published_at, reverse=True)
             return articles
 
         except Exception as e:

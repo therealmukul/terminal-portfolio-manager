@@ -47,3 +47,15 @@ class InvalidPositionError(PortfolioError):
     """Raised when position data is invalid."""
 
     pass
+
+
+class EmailServiceError(StockAgentError):
+    """Raised when email service fails."""
+
+    pass
+
+
+class NewsletterError(StockAgentError):
+    """Raised when newsletter generation or sending fails."""
+
+    pass

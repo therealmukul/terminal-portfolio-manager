@@ -11,6 +11,7 @@ from typing import Dict, List
 
 from app.models.ai_response import (
     AIInsight,
+    ArticleSentiment,
     NewsAnalysis,
     NewsSentiment,
     NewsTheme,
@@ -227,6 +228,146 @@ Please provide your analysis in the JSON format specified."""
                 opportunities=[],
                 risks=[],
             )
+
+    # ============ Article Sentiment Analysis ============
+
+    def analyze_article_sentiments(
+        self, symbol: str, articles: List[NewsArticle]
+    ) -> Dict[int, ArticleSentiment]:
+        """
+        Analyze sentiment for each news article.
+
+        Args:
+            symbol: Stock ticker symbol
+            articles: List of news articles to analyze
+
+        Returns:
+            Dict mapping article index to ArticleSentiment
+
+        Raises:
+            AIServiceError: If AI analysis fails
+        """
+        if not articles:
+            return {}
+
+        self.rate_limiter.acquire_sync()
+
+        try:
+            prompt = self._build_article_sentiment_prompt(symbol, articles)
+
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                system=self._get_article_sentiment_system_prompt(),
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            return self._parse_article_sentiment_response(response.content[0].text, len(articles))
+
+        except Exception as e:
+            raise AIServiceError(f"Article sentiment analysis failed: {e}")
+
+    def _get_article_sentiment_system_prompt(self) -> str:
+        """Get the system prompt for article sentiment analysis."""
+        return """You are an expert financial analyst specializing in news sentiment analysis.
+Your task is to analyze each news article and determine its sentiment regarding the stock.
+
+IMPORTANT: You must respond in valid JSON format with the following structure:
+{
+    "articles": [
+        {
+            "index": 0,
+            "sentiment": "one of: very_bullish, bullish, neutral, bearish, very_bearish",
+            "confidence": "one of: low, medium, high",
+            "summary": "One brief sentence about the article's impact on the stock"
+        },
+        ...
+    ]
+}
+
+Guidelines:
+- Analyze EACH article individually
+- very_bullish: Strong positive news (major wins, beat expectations significantly, strategic breakthrough)
+- bullish: Positive news (good earnings, positive analyst coverage, growth indicators)
+- neutral: Neither positive nor negative, or mixed signals
+- bearish: Negative news (missed expectations, downgrades, challenges)
+- very_bearish: Strong negative news (major losses, scandals, severe downgrades)
+- Keep summaries under 15 words
+- Consider the article's likely impact on investor sentiment"""
+
+    def _build_article_sentiment_prompt(self, symbol: str, articles: List[NewsArticle]) -> str:
+        """Build the prompt for article sentiment analysis."""
+        prompt = f"""Analyze the sentiment of each news article for {symbol}:
+
+"""
+        for i, article in enumerate(articles):
+            prompt += f"""[Article {i}]
+Title: {article.title}
+Publisher: {article.publisher}
+Date: {article.published_at.strftime('%Y-%m-%d')}
+"""
+            if article.summary:
+                summary = article.summary[:300] + "..." if len(article.summary) > 300 else article.summary
+                prompt += f"Summary: {summary}\n"
+            prompt += "\n"
+
+        prompt += "Provide sentiment analysis for each article in JSON format."
+        return prompt
+
+    def _parse_article_sentiment_response(
+        self, response_text: str, num_articles: int
+    ) -> Dict[int, ArticleSentiment]:
+        """Parse Claude's response into article sentiments."""
+        result = {}
+
+        try:
+            json_match = re.search(r"\{[\s\S]*\}", response_text)
+            if not json_match:
+                # Return neutral for all if parsing fails
+                for i in range(num_articles):
+                    result[i] = ArticleSentiment(
+                        sentiment=NewsSentiment.NEUTRAL,
+                        confidence="low",
+                        summary="Unable to analyze",
+                    )
+                return result
+
+            data = json.loads(json_match.group())
+            articles_data = data.get("articles", [])
+
+            for item in articles_data:
+                idx = item.get("index", 0)
+                try:
+                    sentiment = NewsSentiment(item.get("sentiment", "neutral"))
+                except ValueError:
+                    sentiment = NewsSentiment.NEUTRAL
+
+                result[idx] = ArticleSentiment(
+                    sentiment=sentiment,
+                    confidence=item.get("confidence", "medium"),
+                    summary=item.get("summary", ""),
+                )
+
+            # Fill in any missing indices with neutral
+            for i in range(num_articles):
+                if i not in result:
+                    result[i] = ArticleSentiment(
+                        sentiment=NewsSentiment.NEUTRAL,
+                        confidence="low",
+                        summary="",
+                    )
+
+            return result
+
+        except json.JSONDecodeError:
+            # Return neutral for all if parsing fails
+            for i in range(num_articles):
+                result[i] = ArticleSentiment(
+                    sentiment=NewsSentiment.NEUTRAL,
+                    confidence="low",
+                    summary="Unable to parse analysis",
+                )
+            return result
 
     # ============ Portfolio Analysis ============
 

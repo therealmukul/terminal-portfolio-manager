@@ -1,7 +1,7 @@
 """User input handling with Rich prompts."""
 
 from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from rich.prompt import Confirm, Prompt
 from rich.console import Console
@@ -9,6 +9,9 @@ from rich.table import Table
 
 from app.models.portfolio import Position
 from app.utils.validators import validate_stock_symbol
+
+if TYPE_CHECKING:
+    from app.services.stock_service import StockService
 
 
 # Available Claude models with descriptions
@@ -72,7 +75,7 @@ class StockPrompts:
     @staticmethod
     def get_stock_symbol() -> str:
         """
-        Prompt for stock symbol.
+        Prompt for stock symbol (basic validation only).
 
         Returns:
             Validated uppercase stock symbol
@@ -82,6 +85,97 @@ class StockPrompts:
             if validate_stock_symbol(symbol):
                 return symbol
             print("[red]Invalid symbol format. Use 1-5 letters (e.g., AAPL, MSFT)[/red]")
+
+    @staticmethod
+    def get_stock_symbol_with_search(stock_service: "StockService") -> Optional[str]:
+        """
+        Prompt for stock symbol with fuzzy search support.
+
+        Allows user to enter a ticker symbol or company name.
+        Shows matching results and lets user select.
+
+        Args:
+            stock_service: StockService instance for searching
+
+        Returns:
+            Selected stock symbol or None if cancelled
+        """
+        console = Console()
+
+        while True:
+            query = Prompt.ask(
+                "[cyan]Enter stock symbol or company name[/cyan]"
+            ).strip()
+
+            if not query:
+                continue
+
+            # Check if it looks like a valid ticker (1-5 uppercase letters)
+            upper_query = query.upper()
+            if validate_stock_symbol(upper_query):
+                # Try exact match first
+                try:
+                    results = stock_service.search_stocks(upper_query, limit=1)
+                    if results and results[0].symbol.upper() == upper_query:
+                        return upper_query
+                except Exception:
+                    pass
+
+            # Search for matches
+            try:
+                results = stock_service.search_stocks(query, limit=8)
+            except Exception as e:
+                console.print(f"[red]Search failed: {e}[/red]")
+                continue
+
+            if not results:
+                console.print(f"[yellow]No matches found for '{query}'[/yellow]")
+                if Confirm.ask("[cyan]Try again?[/cyan]", default=True):
+                    continue
+                return None
+
+            # If only one result, confirm and use it
+            if len(results) == 1:
+                result = results[0]
+                console.print(
+                    f"[green]Found:[/green] {result.symbol} - {result.name}"
+                )
+                if Confirm.ask("[cyan]Use this stock?[/cyan]", default=True):
+                    return result.symbol
+                continue
+
+            # Show results table for selection
+            console.print(f"\n[bold]Found {len(results)} matches:[/bold]")
+
+            table = Table(show_header=True, header_style="bold", box=None)
+            table.add_column("#", style="cyan", width=3)
+            table.add_column("Symbol", style="bold yellow")
+            table.add_column("Name")
+            table.add_column("Exchange", style="dim")
+
+            for i, result in enumerate(results, 1):
+                table.add_row(
+                    str(i),
+                    result.symbol,
+                    result.name[:40] + "..." if len(result.name) > 40 else result.name,
+                    result.exchange or "",
+                )
+
+            console.print(table)
+
+            # Get selection
+            choices = [str(i) for i in range(1, len(results) + 1)] + ["0"]
+            selection = Prompt.ask(
+                "\n[cyan]Select number (0 to search again)[/cyan]",
+                choices=choices,
+                default="1",
+            )
+
+            if selection == "0":
+                continue
+
+            selected = results[int(selection) - 1]
+            return selected.symbol
 
     @staticmethod
     def confirm_ai_analysis() -> bool:
@@ -105,7 +199,7 @@ class StockPrompts:
         """
         return Prompt.ask(
             "\n[bold cyan]Command[/bold cyan]",
-            choices=["analyze", "news", "news-analysis", "portfolio", "add", "remove", "analyze-portfolio", "portfolio-news", "history", "performance", "help", "quit"],
+            choices=["stock", "news", "news-analysis", "portfolio", "add", "remove", "analyze-portfolio", "portfolio-news", "history", "performance", "help", "quit"],
             default="portfolio",
         )
 

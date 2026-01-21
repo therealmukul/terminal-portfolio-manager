@@ -72,7 +72,7 @@ class StockAgent:
                     break
                 elif command == "help":
                     self.display.display_help()
-                elif command == "analyze":
+                elif command == "stock":
                     self._analyze_stock()
                 elif command == "news":
                     self._get_news()
@@ -104,7 +104,9 @@ class StockAgent:
 
     def _analyze_stock(self):
         """Analyze a single stock."""
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+        if not symbol:
+            return
 
         # Fetch stock data with progress spinner
         with Progress(
@@ -156,8 +158,10 @@ class StockAgent:
             self.display.display_ai_insight(insight)
 
     def _get_news(self):
-        """Get news for a stock."""
-        symbol = self.prompts.get_stock_symbol()
+        """Get news for a stock with AI sentiment analysis."""
+        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+        if not symbol:
+            return
 
         with Progress(
             SpinnerColumn(),
@@ -174,7 +178,28 @@ class StockAgent:
                 self.console.print_error(f"Failed to fetch news: {e}")
                 return
 
-        self.display.display_news(symbol, articles)
+        if not articles:
+            self.console.print_info(f"No news articles found for {symbol}")
+            return
+
+        # Get AI sentiment analysis if available
+        sentiments = None
+        if self.ai_service:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=self.console.console,
+                transient=True,
+            ) as progress:
+                task = progress.add_task("Analyzing sentiment...", total=None)
+                try:
+                    sentiments = self.ai_service.analyze_article_sentiments(symbol, articles)
+                    progress.update(task, description="[green]Sentiment analysis complete[/green]")
+                except AIServiceError:
+                    # Silently continue without sentiment if AI fails
+                    pass
+
+        self.display.display_news(symbol, articles, sentiments)
 
     def _analyze_news(self):
         """Analyze news for a stock using AI."""
@@ -184,7 +209,9 @@ class StockAgent:
             )
             return
 
-        symbol = self.prompts.get_stock_symbol()
+        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+        if not symbol:
+            return
 
         # Fetch news
         with Progress(
@@ -251,8 +278,10 @@ class StockAgent:
 
     def _add_position(self):
         """Add a new position to the portfolio."""
-        # Get position details via prompts
-        symbol = self.prompts.get_stock_symbol()
+        # Get position details via prompts with fuzzy search
+        symbol = self.prompts.get_stock_symbol_with_search(self.stock_service)
+        if not symbol:
+            return
 
         # Validate symbol exists
         with Progress(
